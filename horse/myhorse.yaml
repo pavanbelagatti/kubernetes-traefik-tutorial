@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myhorse-nginx
+  labels:
+    app: myhorse-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myhorse-nginx
+  template:
+    metadata:
+      labels:
+        app: myhorse-nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: html-volume
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: html-volume
+        configMap:
+          name: myhorse-html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myhorse-nginx-service
+spec:
+  selector:
+    app: myhorse-nginx
+  ports:
+    - protocol: TCP
+      port: 80
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: myhorse-nginx-ingress
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    traefik.frontend.rule.type: PathPrefixStrip
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /myhorse
+        backend:
+          serviceName: myhorse-nginx-service
+          servicePort: 80
